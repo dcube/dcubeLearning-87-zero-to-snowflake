@@ -1,0 +1,54 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "SnowSQL",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/app,type=bind",
+	"workspaceFolder": "/workspaces/app",
+
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/vscode/devcontainers/base:bullseye",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"azure-cli": "latest"
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+				"extensions": [
+					"snowflake.snowflake-vsc"
+				],
+				"settings": {
+						"container.type": "snowsql-on-debian",
+						"files.trimTrailingWhitespace": true,
+						"files.trimFinalNewlines": true,
+						"files.insertFinalNewline": true,
+						"files.eol": "\n",
+						"files.exclude": {
+						},
+						"editor.formatOnSaveMode": "modifications",
+						"editor.formatOnSave": true,
+						"editor.formatOnType": false,
+						"editor.defaultFormatter": "eeyore.yapf",
+						"mypy-type-checker.args": [],
+						"git.preCommitEnabled": false,
+						"debug.internalConsoleOptions": "neverOpen",
+						"task.autoDetect": "off"
+				}
+		}
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "./install.sh",
+
+	"remoteUser": "vscode",
+	"remoteEnv": {
+    "PATH": "${containerEnv:PATH}:$HOME/bin",
+    "MY_REMOTE_VARIABLE": "some-other-value-here",
+    "MY_REMOTE_VARIABLE2": "${localEnv:SOME_LOCAL_VAR}"
+  }
+}
