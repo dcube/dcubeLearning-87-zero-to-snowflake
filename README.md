@@ -214,7 +214,7 @@ Analyse the execution plan of your query and get statistics
 <div align="center">
   <img src="./assets/images/ui_query_profile_copy_into.png" alt="" style="width:800px;"/>
 </div>
-![alt text](image-1.png)
+
 
 
 ## Resize and Use a Warehouse for Data Loading
@@ -343,9 +343,61 @@ pattern = '.*.json.*'
 ```
 
 ## Explore and querying json
+Change the warehouse to use ANALYSIS, explore the json data and create a view to expose json data as a tabular format
 ```sql
+use warehouse analysis;
 
+-- view the first 100 rows
+select * from weather_data_json limit 100;
+
+-- present the variant data to users in a cleaner manner
+create or replace view weather_data as
+select 
+    raw_data:obsTime::timestamp as observation_time,
+    raw_data:station::string as station_id,
+    raw_data:name::string as city_name,
+    raw_data:country::string as country,
+    raw_data:latitude::float as city_lat,
+    raw_data:longitude::float as city_lon,
+    raw_data:weatherCondition::string as weather_conditions,
+    raw_data:coco::int as weather_conditions_code,
+    raw_data:temp::float as temp,
+    raw_data:prcp::float as rain,
+    raw_data:tsun::float as tsun,
+    raw_data:wdir::float as wind_dir,
+    raw_data:wspd::float as wind_speed,
+    raw_data:dwpt::float as dew_point,
+    raw_data:rhum::float as relative_humidity,
+    raw_data:pres::float as pressure
+from
+    weather_data_json 
+;
+
+-- verify the view with the following query
+select * 
+from weather_data
+where date_trunc('month',observation_time) = '2018-01-01'
+and station_id  = '72502'
+limit 20;
 ```
+
+Correlate NYC city bike trips and weather data in order to answer our orginal question of how weather impacts the number of rides
+```sql
+select 
+  weather_data.weather_conditions as conditions,
+  count(bike_trips.*) as num_trips
+from 
+  bike_trips
+  left outer join weather_data
+    on date_trunc('hour', weather_data.observation_time) = date_trunc('hour', bike_trips.starttime)
+where conditions is not null
+group by all
+order by 2 desc;
+```
+
+# using Time Travel and clone
+
+
 
 # Resources cleansing
 Drop resources after the learning session \
