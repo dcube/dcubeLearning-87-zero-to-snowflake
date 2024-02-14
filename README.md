@@ -1,4 +1,4 @@
-# dcubeLearning-87-zero-to-snowflae
+# dcubeLearning-87-zero-to-snowflake
 Hands-on lab to introduce Snowflake basic concepts
 
 ## Prerequisites
@@ -311,24 +311,39 @@ The weather json files are also stored on a public AWS s3 bucket s3://snowflake-
 
 ```sql
 -- create the stage
-create stage nyc_weather
+create stage if not exists nyc_weather
 url='s3://snowflake-workshop-lab/zero-weather-nyc';
 
 -- create the file format for the json files
-create file format if not exists csv
+create file format if not exists json
   type = 'json'
   strip_outer_array = true;
 
 -- create the table where to copy the data
-create table json_weather_data (
+create table if not exists weather_data_json (
   raw_data variant,
   file_name string,
   file_row_num number,
-  file_last_update date
+  file_last_modified date
   );
 
 -- copy the data
+copy into weather_data_json
+from (
+    select
+        $1,
+        metadata$filename,
+        metadata$file_row_number,
+        metadata$file_last_modified
+    from @nyc_weather
+)
+file_format = json
+pattern = '.*.json.*'
+;
+```
 
+## Explore and querying json
+```sql
 
 ```
 
