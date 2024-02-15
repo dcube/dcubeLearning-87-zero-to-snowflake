@@ -35,7 +35,6 @@ create role if not exists rookie;
 grant role rookie to role sysadmin;
 -- allow usage on warehouse to the rookie role
 grant modify on warehouse load to role rookie;
-grant modify on warehouse transform to role rookie;
 grant modify on warehouse analysis to role rookie;
 
 -- create "technical" role to define access privilege onto the learning database
@@ -45,6 +44,12 @@ grant role learn_zero_to_snow_n0 to role rookie;
 
 -- give ownwership on database learn_zero_to_snow to role learn_zero_to_snow_n0
 grant ownership on database learn_zero_to_snow to role learn_zero_to_snow_n0;
+
+-- ----------------------------------------------------------------------------
+-- altering warehouse to manage concurrency during the dcube learning
+-- ----------------------------------------------------------------------------
+alter warehouse load set min_cluster_count = 1, max_cluster_count = 10;
+alter warehouse analysis set min_cluster_count = 1, max_cluster_count = 10;
 ```
 
 N.B: for more informations about privileges please refer to https://docs.snowflake.com/en/sql-reference/commands-user-role
@@ -215,8 +220,6 @@ Analyse the execution plan of your query and get statistics
   <img src="./assets/images/ui_query_profile_copy_into.png" alt="" style="width:800px;"/>
 </div>
 
-
-
 ## Resize and Use a Warehouse for Data Loading
 To see the scale up in action, repeat the same operationn resizing the warehouse from X-Small to Small
 ```sql
@@ -276,19 +279,6 @@ select
 from trips
 group by 1
 order by 2 desc;
-```
-
-## Clone a table
-Snowflake allows you to create clones, also known as "zero-copy clones" of tables, schemas, and databases in seconds. When a clone is created, Snowflake takes a snapshot of data present in the source object and makes it available to the cloned object. The cloned object is writable and independent of the clone source. Therefore, changes made to either the source object or the clone object are not included in the other.
-
-A popular use case for zero-copy cloning is to clone a production environment for use by Development & Testing teams to test and experiment without adversely impacting the production environment and eliminating the need to set up and manage two separate environments.
-
-Zero-Copy Cloning A massive benefit of zero-copy cloning is that the underlying data is not copied. Only the metadata and pointers to the underlying data change. Hence, clones are "zero-copy" and storage requirements are not doubled when the data is cloned. Most data warehouses cannot do this, but for Snowflake it is easy!
-
-Run the following command in the worksheet to create a development (dev) table clone of the trips table:
-
-```sql
-create table if not exists bike_trips_dev clone bike_trips;
 ```
 
 # 7. Working with Semi-Structured Data, Views, & Joins
@@ -395,9 +385,61 @@ group by all
 order by 2 desc;
 ```
 
-# using Time Travel and clone
+# 9. Use Time Travel and Clone
 
+Snowflake's powerful Time Travel feature enables accessing historical data, as well as the objects storing the data, at any point within a period of time. The default window is 24 hours and, if you are using Snowflake Enterprise Edition, can be increased up to 90 days. \
+cf. https://docs.snowflake.com/en/user-guide/data-time-travel
 
+```sql
+-- get tables description on your schema, see the retention time
+show tables;
+
+-- delete trips year=2018
+delete from bike_trips where year(starttime) = 2018;
+
+select count(*) from bike_trips where year(starttime) = 2018;
+
+-- use time travel to query data as it was
+select count(*) from bike_trips AT(OFFSET => -60*10) where year(starttime) = 2018; --use can use offset, query_id ....
+```
+
+Snowflake allows you to create clones, also known as "zero-copy clones" of tables, schemas, and databases in seconds. When a clone is created, Snowflake takes a snapshot of data present in the source object and makes it available to the cloned object. The cloned object is writable and independent of the clone source. Therefore, changes made to either the source object or the clone object are not included in the other.
+
+A popular use case for zero-copy cloning is to clone a production environment for use by Development & Testing teams to test and experiment without adversely impacting the production environment and eliminating the need to set up and manage two separate environments.
+Anothe very usefull use case is to point-in-time restore data
+
+Zero-Copy Cloning A massive benefit of zero-copy cloning is that the underlying data is not copied. Only the metadata and pointers to the underlying data change. Hence, clones are "zero-copy" and storage requirements are not doubled when the data is cloned. Most data warehouses cannot do this, but for Snowflake it is easy!
+
+Use clone + time travel to restore data:
+```sql
+create or replace table bike_trips_restored clone bike_trips AT(OFFSET => -60*10);
+
+-- check your data has been restored
+select count(*) from bike_trips_restored where year(starttime) = 2018;
+
+-- swap to get back you data in original table
+alter table bike_trips swap with bike_trips_restored;
+
+--reexecute the previous query and then clean your 
+drop table bike_trips_restored;
+```
+
+Use zero copy clone to create a test environment
+```sql
+-- clone schema
+set schema_source=(select 'nyc_'||current_user());
+set schema_clone=(select 'test_nyc_'||current_user());
+create or replace schema identifier($schema_clone) clone identifier($schema_source);
+
+-- show objects in clone
+show objects in schema identifier($schema_clone);
+```
+
+if you drop a database, a schema, a table or a view you can undrop it depending on the time rentention
+```sql
+drop schema identifier($schema_clone);
+undrop schema identifier($schema_clone);
+```
 
 # Resources cleansing
 Drop resources after the learning session \
@@ -412,4 +454,10 @@ drop database learn_zero_to_snow;
 use role securityadmin;
 drop role learn_zero_to_snow_n0;
 drop role rookie;
+
+-- reset the warehouses to initial
+alter warehouse load set min_cluster_count = 1, max_cluster_count = 1;
+alter warehouse analysis set min_cluster_count = 1, max_cluster_count = 1;
+suspend warehouse load;
+suspend warehouse analysis;
 ```
