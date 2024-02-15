@@ -36,6 +36,8 @@ grant role rookie to role sysadmin;
 -- allow usage on warehouse to the rookie role
 grant modify on warehouse load to role rookie;
 grant modify on warehouse analysis to role rookie;
+grant usage on warehouse load to role rookie;
+grant usage on warehouse analysis to role rookie;
 
 -- create "technical" role to define access privilege onto the learning database
 create role if not exists learn_zero_to_snow_n0;
