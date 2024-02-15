@@ -48,8 +48,15 @@ grant ownership on database learn_zero_to_snow to role learn_zero_to_snow_n0;
 -- ----------------------------------------------------------------------------
 -- altering warehouse to manage concurrency during the dcube learning
 -- ----------------------------------------------------------------------------
+use role accountadmin;
 alter warehouse load set min_cluster_count = 1, max_cluster_count = 10;
 alter warehouse analysis set min_cluster_count = 1, max_cluster_count = 10;
+
+-- ----------------------------------------------------------------------------
+-- assigning rookie role to attendees
+-- ----------------------------------------------------------------------------
+use role securityadmin;
+-- grant role rookie to user FREDERICBROSSARD; 
 ```
 
 N.B: for more informations about privileges please refer to https://docs.snowflake.com/en/sql-reference/commands-user-role
