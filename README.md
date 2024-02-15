@@ -446,18 +446,26 @@ Drop resources after the learning session \
 N.B : you must have sysadmin and securityadmin roles to operate the following queries
 
 ```sql
--- drop the database
 use role sysadmin;
-drop database learn_zero_to_snow;
 
+-- ----------------------------------------------------------------------------
+-- drop the database
+-- ----------------------------------------------------------------------------
+drop database if exists learn_zero_to_snow;
+
+-- ----------------------------------------------------------------------------
 -- drop the roles
+-- ----------------------------------------------------------------------------
 use role securityadmin;
-drop role learn_zero_to_snow_n0;
-drop role rookie;
+drop role if exists learn_zero_to_snow_n0;
+drop role if exists rookie;
 
+-- ----------------------------------------------------------------------------
 -- reset the warehouses to initial
+-- ----------------------------------------------------------------------------
+use role accountadmin;
 alter warehouse load set min_cluster_count = 1, max_cluster_count = 1;
 alter warehouse analysis set min_cluster_count = 1, max_cluster_count = 1;
-suspend warehouse load;
-suspend warehouse analysis;
+
+show warehouses;
 ```
